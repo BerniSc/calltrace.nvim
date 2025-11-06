@@ -2,7 +2,7 @@
 
 Trace function call paths from any point in your code back to a referencefunction using LSP and Treesitter.
 
-> **Note**: This plugin is still in active development. Some/Many features are missing or incomplete.
+> **Note**: This plugin is still in very early development. Some/Many features are missing or incomplete.
 
 ## What it does
 
@@ -56,7 +56,7 @@ M.defaults = {
 ### packer.nvim
 ```lua
 use {
-    'bernisc/calltrace',
+    'BerniSc/calltrace',
     config = function()
         require'calltrace'.setup({
             display = {
@@ -68,7 +68,7 @@ use {
 ```
 or with default configs:
 ```lua
-use 'bernisc/calltrace'
+use 'BerniSc/calltrace'
 ```
 
 ## Usage
@@ -121,10 +121,12 @@ require('calltrace').trace({ display = { backend = "float" } })
 
 **Todo:**
 - [ ] Implement Resultcaching
-- [ ] Implement the other displaybackends (quickfix, telescope)
+- [ ] Implement the other displaybackends (quickfix, telescope, split)
 - [ ] Cross-file optimization
 - [ ] Better language support
-- [ ] Performance improvements -> For example async calls
+- [ ] Performance improvements 
+    - [ ] async calls
+    - [ ] caching
 - [ ] More tests
 
 ## Requirements
