@@ -90,6 +90,19 @@ function M.trace_to_reference(bufnr, pos, function_name, reference_point, config
                     ref_bufnr = vim.fn.bufnr(ref_file)
                 end
 
+                -- Ensure filetype is set set and attach ts parser. This is an issue if the buffer we are looking at was not opened manually before
+                -- but was openend during our tracing. This results in the buffer just loading, but nothing attaching yet
+                -- TODO Implement Centralized buffermanagement for LSP/TS cleanup after tracing and caching of results to mitigate high performanceimpact
+                local ft = vim.filetype.match({ filename = ref_file })
+                if ft then
+                    -- Trigger autocommands and nvim filetypedetection
+                    vim.api.nvim_buf_call(ref_bufnr, function()
+                        vim.cmd('setfiletype ' .. ft)
+                    end)
+                    -- creates OR RETRIEVES parser for buffer -> No need to manually check
+                    pcall(vim.treesitter.get_parser, ref_bufnr, ft)
+                end
+
                 -- Check if ref is actually a functioncall
                 local is_call = ts.is_function_call(ref_bufnr, ref_row, ref_col)
                 utils.debug_print(config, string.format("    Is function call: %s", tostring(is_call)))
