@@ -83,16 +83,17 @@ function M.trace_to_reference(bufnr, pos, function_name, reference_point, config
                 utils.debug_print(config, string.format("   Position: %d:%d", ref_row, ref_col))
 
                 -- Load buf for ref - create if it does not exist
+                -- These buffers are created as hidden unlisted buffers and thereby are cleaned up automatically after functerm I think.
+                -- No special cleanup needed
                 local ref_bufnr = vim.fn.bufnr(ref_file, true)
-                -- if buffer was created but not loaded some ops may fail -> fix here by reloading
-                if ref_bufnr == -1 then
-                    vim.fn.bufload(ref_file)
-                    ref_bufnr = vim.fn.bufnr(ref_file)
+                -- if buffer was created but not loaded some ops may fail -> fix here by reloading if it was not laoded
+                if not vim.api.nvim_buf_is_loaded(ref_bufnr) then
+                    vim.fn.bufload(ref_bufnr)
                 end
 
                 -- Ensure filetype is set set and attach ts parser. This is an issue if the buffer we are looking at was not opened manually before
                 -- but was openend during our tracing. This results in the buffer just loading, but nothing attaching yet
-                -- TODO Implement Centralized buffermanagement for LSP/TS cleanup after tracing and caching of results to mitigate high performanceimpact
+                -- TODO Implement caching of results to mitigate high performanceimpact
                 local ft = vim.filetype.match({ filename = ref_file })
                 if ft then
                     -- Trigger autocommands and nvim filetypedetection
