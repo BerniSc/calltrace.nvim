@@ -16,36 +16,39 @@ function M.trace_to_reference(bufnr, pos, function_name, reference_point, config
     local exclude_patterns = config.exclude_patterns
 
     local all_paths = {}
-    -- Prevent infinite loops by loop-detection dict
-    local visited = {}
 
     -- Recursive trace function
     -- Takes:
     --      Buffernumber: int
     --      position of the functionname (unless failed to find it, then def): table<int,int>
     --      functionname: string
+    --      filename: string
     --      tracepath: table<path_entry>
     --      recursiondepth: int
-    local function trace_upward(current_bufnr, current_pos, current_name, path, depth)
+    --      Visited nodes per Path. This is to prevent loops while still allowing for revisiting the same function on different path. 
+    --          We could also filter current-path with loop, but rather use table with O(1) lookup, feels better: table<string>
+    --      path_key: string -> 
+    local function trace_upward(current_bufnr, current_pos, current_name, current_file_name, path, depth, path_set, path_key)
         -- Exit early -> Reached max rec depth
         if depth > max_depth then
             utils.debug_print(config, "Max depth reached")
             return
         end
 
-        -- Unique key for loop detection > Use "buffer:row:col" as key as it identifies function clearly
-        local key = string.format("%s:%d:%d", vim.api.nvim_buf_get_name(current_bufnr), current_pos[1], current_pos[2])
-        if visited[key] then
-            utils.debug_print(config, "Already visited:", key)
+        -- Build key to identify call uniquely for this recursive branch. We want to allow using the same functionnode multiple times if it is 
+        -- part of multiple paths (like A->C->D as well as A->B->C->D) yet we still need to block endless loops (like A->B->A->B)
+        local current_node = current_file_name .. ":" .. current_name
+        local new_path_key = (path_key .. ">" .. current_node)
+        if path_set[new_path_key] then
+            utils.debug_print(config, "Cycle detected in current path:", new_path_key)
             return
         end
-        visited[key] = true
+        path_set[new_path_key] = true
 
         utils.debug_print(config, string.format("Depth %d: Tracking %s at %s:%d", depth, current_name, vim.api.nvim_buf_get_name(current_bufnr), current_pos[1]))
 
         -- Check wheter we reached refpoint
-        local current_file = vim.api.nvim_buf_get_name(current_bufnr)
-        if current_file == reference_point.file and current_name == reference_point.name then
+        if current_file_name == reference_point.file and current_name == reference_point.name then
             -- Found complete path
             utils.debug_print(config, "Found path to reference point")
             -- path changes recursively, without deepcopy it would still mutate what we write into all_paths
@@ -171,7 +174,8 @@ function M.trace_to_reference(bufnr, pos, function_name, reference_point, config
                         end
 
                         -- Recursively trace upward from containing functions name
-                        trace_upward(ref_bufnr, containing_pos, containing_func_name, new_path, depth + 1)
+                        -- trace_upward(ref_bufnr, containing_pos, containing_func_name, new_path, depth + 1, path_set, new_path_key)
+                        trace_upward(ref_bufnr, containing_pos, containing_func_name, ref_file, new_path, depth + 1, path_set, current_node)
                     else
                         -- Recterm
                         utils.debug_print(config, "    No containing function found")
@@ -181,6 +185,8 @@ function M.trace_to_reference(bufnr, pos, function_name, reference_point, config
                 utils.debug_print(config, "    File excluded")
             end
         end
+        -- Free path from dict in this recursive branch to allow other paths to include the node again
+        path_set[new_path_key] = nil
     end
 
     -- Start tracing with initial path-entry (create table<pathenries> of tables<pathenty>)
@@ -191,8 +197,9 @@ function M.trace_to_reference(bufnr, pos, function_name, reference_point, config
         function_name = function_name,
         calls = nil,
     }}
+    local initial_path_set = {}
 
-    trace_upward(bufnr, pos, function_name, initial_path, 0)
+    trace_upward(bufnr, pos, function_name, vim.api.nvim_buf_get_name(bufnr), initial_path, 0, initial_path_set, "")
 
     return all_paths
 end

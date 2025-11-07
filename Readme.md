@@ -118,6 +118,7 @@ require('calltrace').trace({ display = { backend = "float" } })
 - ✅ Backward tracing algorithm
 - ✅ Floating window display
 - ✅ Multi-path support
+- ✅ Loop-Detection to prevent infinite loops
 
 **Todo:**
 - [ ] Implement Resultcaching
