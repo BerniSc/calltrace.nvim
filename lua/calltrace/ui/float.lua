@@ -16,13 +16,14 @@ function M.display(paths, config)
 
             -- "unravel" our pathstack, start at last path that was found to finish loop, then go down. If it calls display so, otherwise say "goal reached"
             if entry.calls then
-                table.insert(lines, string.format("  %s %s → %s",
+                table.insert(lines, string.format("  %s %s %s %s",
                                     config.icons.call,
                                     entry.function_name,
+                                    config.icons.path,
                                     entry.calls))
             else
                 -- Reached 
-                table.insert(lines, string.format("  %s %s", config.icons.reference, entry.function_name))
+                table.insert(lines, string.format("  %s %s", config.icons.target, entry.function_name))
             end
         end
 
