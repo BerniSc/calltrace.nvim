@@ -21,7 +21,7 @@ end
 
 -- Place referencesign in the signcolumn
 function M.place_reference_sign(bufnr, lnum, icon)
-    -- Define sign if not already defined - TODO configurable texthighlight?
+    -- Define sign if not already defined - TODO configurable texthighlight? And think about moving it to init for performance
     vim.fn.sign_define('ReferencePoint', {text = icon or 'R', texthl = 'WarningMsg', numhl = ''})
     -- Remove previous sign(s) for this buffer
     vim.fn.sign_unplace('ReferenceGroup', {buffer = bufnr})

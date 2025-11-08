@@ -26,7 +26,8 @@ M.defaults = {
 
     -- Displayoptions
     display = {
-        -- "quickfix" | "float" | "split" | "telescope"  TODO Implement the others, currently only float and quickfix working
+        -- TODO Implement the others, currently only float and quickfix working
+        -- "quickfix" | "float" | "split" | "telescope"
         backend = "float",
         -- Highlight referencepoint in signcol
         highlight_reference = true,
