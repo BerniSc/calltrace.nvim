@@ -11,7 +11,6 @@ M.defaults = {
         -- "quickfix" | "float" | "split" | "telescope"
         -- TODO Implement the others
         backend = "float",
-        -- Highlight reference point differently TODO Implement
         -- Highlight referencepoint in signcol
         highlight_reference = true,
     },

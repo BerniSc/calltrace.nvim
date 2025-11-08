@@ -26,9 +26,10 @@ M.defaults = {
 
     -- Displayoptions
     display = {
-        -- "quickfix" | "float" | "split" | "telescope"
-        -- TODO Implement the others
+        -- "quickfix" | "float" | "split" | "telescope"  TODO Implement the others, currently only float and quickfix working
         backend = "float",
+        -- Highlight referencepoint in signcol
+        highlight_reference = true,
     },
 
     -- Performance options
@@ -43,9 +44,10 @@ M.defaults = {
 
     -- UI-Customization
     icons = {
-        reference = "📍",   -- currently used for shortly set reference (may provoke misunderstandings -> TODO Look at it)
+        entry = "📍",
+        target = "",
         call = "󰃀",
-        path = "→",
+        path = "→",         -- Might also hold strings like "calls" etc
     },
 
     -- Debugmode
