@@ -2,12 +2,15 @@
 
 local M = {}
 
+-- needed to place/remove signs in signcol
+local utils = require('calltrace.utils')
+
 -- State
 M.cur_ref_point = nil
 M.trace_cache = {}
 
--- Set refpoint at cursorposition
-function M.set_reference(bufnr, pos, function_name)
+-- Set refpoint at cursorposition, need config for signcol icon
+function M.set_reference(config, bufnr, pos, function_name)
     M.cur_ref_point = {
         bufnr = bufnr,
         pos = pos,
@@ -15,6 +18,11 @@ function M.set_reference(bufnr, pos, function_name)
         uri = vim.uri_from_bufnr(bufnr),
         file = vim.api.nvim_buf_get_name(bufnr),
     }
+
+    -- Place sign at refline
+    if config.display.highlight_reference then
+        utils.place_reference_sign(bufnr, pos[1], config.icons.entry)
+    end
 
     return M.cur_ref_point
 end
@@ -25,7 +33,10 @@ function M.get_reference()
 end
 
 -- Clear refpoint
-function M.clear_reference()
+function M.clear_reference(config)
+    if config.display.highlight_reference and M.cur_ref_point then
+        utils.clear_reference_sign(M.cur_ref_point.bufnr)
+    end
     M.cur_ref_point = nil
     M.trace_cache = {}
 end

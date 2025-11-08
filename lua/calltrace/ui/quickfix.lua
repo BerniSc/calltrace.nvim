@@ -16,13 +16,14 @@ function M.display(paths, config)
             local text
 
             if entry.calls then
-                text = string.format("%s %s calls %s",
+                text = string.format("%s %s %s %s",
                                      config.icons.call,
                                      entry.function_name,
+                                     config.icons.path,
                                      entry.calls)
             else
                 -- Leaf -> Found our Tracee
-                text = string.format("%s %s (start)", config.icons.reference, entry.function_name)
+                text = string.format("%s %s (start)", config.icons.target, entry.function_name)
             end
 
             -- Insert entry with this line and colnums

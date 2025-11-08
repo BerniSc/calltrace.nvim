@@ -30,13 +30,13 @@ function M.set_reference()
         return
     end
 
-    state.set_reference(bufnr, pos, function_name)
+    state.set_reference(M.config, bufnr, pos, function_name)
     vim.notify(string.format("Referencepoint set: %s", function_name), vim.log.levels.INFO)
 end
 
 -- Clear reference point -> caled by nvim cmds
 function M.clear_reference()
-    state.clear_reference()
+    state.clear_reference(M.config)
     vim.notify("Referencepoint cleared", vim.log.levels.INFO)
 end
 

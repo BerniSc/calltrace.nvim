@@ -12,6 +12,7 @@ M.defaults = {
         -- TODO Implement the others
         backend = "float",
         -- Highlight reference point differently TODO Implement
+        -- Highlight referencepoint in signcol
         highlight_reference = true,
     },
 
@@ -27,9 +28,10 @@ M.defaults = {
 
     -- UI-Customization
     icons = {
-        reference = "📍",   -- currently used for shortly set reference (may provoke misunderstandings -> TODO Look at it)
+        entry = "📍",
+        target = "",
         call = "󰃀",
-        path = "→",
+        path = "→",         -- Might also hold strings like "calls" etc
     },
 
     -- Debugmode
