@@ -13,17 +13,24 @@ function M.display(paths, config)
         -- get current pathelement, starting with Main-Referencepoint to which we trace up to
         for i = #path, 1, -1 do
             local entry = path[i]
+
+            -- generate displayname to include possible aliasing
+            local display_name = entry.function_name
+            if entry.alias and entry.alias ~= entry.function_name then
+                display_name = string.format("%s (%s)", entry.function_name, entry.alias)
+            end
+
             local text
 
             if entry.calls then
                 text = string.format("%s %s %s %s",
                                      config.icons.call,
-                                     entry.function_name,
+                                     display_name,
                                      config.icons.path,
                                      entry.calls)
             else
                 -- Leaf -> Found our Tracee
-                text = string.format("%s %s (start)", config.icons.target, entry.function_name)
+                text = string.format("%s %s (start)", config.icons.target, display_name)
             end
 
             -- Insert entry with this line and colnums

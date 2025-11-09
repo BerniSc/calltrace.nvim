@@ -27,8 +27,10 @@ function M.trace_to_reference(bufnr, pos, function_name, reference_point, config
     --      recursiondepth: int
     --      Visited nodes per Path. This is to prevent loops while still allowing for revisiting the same function on different path. 
     --          We could also filter current-path with loop, but rather use table with O(1) lookup, feels better: table<string>
-    --      path_key: string -> 
+    --      path_key -> filename:funcname to build incremental string for Loopdetection: string
     local function trace_upward(current_bufnr, current_pos, current_name, current_file_name, path, depth, path_set, path_key)
+        -- TODO if is alias is set we want to build a name we enter into path (like name (pathkey.split(:)[0]) or something like that.
+
         -- Exit early -> Reached max rec depth
         if depth > max_depth then
             utils.debug_print(config, "Max depth reached")
@@ -179,6 +181,33 @@ function M.trace_to_reference(bufnr, pos, function_name, reference_point, config
                     else
                         -- Recterm
                         utils.debug_print(config, "    No containing function found")
+                    end
+                else
+                    -- Check if this is an aliased import
+                    local alias, alias_node = ts.get_import_alias(ref_bufnr, ref_row, ref_col)
+                    if alias then
+                        utils.debug_print(config, string.format("    Found import alias: %s -> %s", current_name, alias))
+
+                        -- Get the position of the alias identifier itself
+                        -- TODO Check NIL?
+                        local alias_row, alias_col = alias_node:start()
+
+                        -- Add alias info to path entry > display renaming operation in menus
+                        local new_path_entry = {
+                            file = ref_file,
+                            line = ref_row,
+                            col = ref_col,
+                            function_name = alias, -- real/original name
+                            calls = current_name,
+                            alias = current_name,  -- current_name is alias used in code
+                        }
+                        local new_path = vim.deepcopy(path)
+                        table.insert(new_path, new_path_entry)
+
+                        -- Continue tracing from the alias position
+                        trace_upward(ref_bufnr, {alias_row + 1, alias_col}, alias, ref_file, new_path, depth, path_set, new_path_key)
+                    else
+                        utils.debug_print(config, "    Reference is not a call and not an aliased import, skipping")
                     end
                 end
             else

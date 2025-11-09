@@ -14,16 +14,22 @@ function M.display(paths, config)
         for i = #path, 1, -1 do
             local entry = path[i]
 
+            -- generate displayname to include possible aliasing
+            local display_name = entry.function_name
+            if entry.alias and entry.alias ~= entry.function_name then
+                display_name = string.format("%s (%s)", entry.function_name, entry.alias)
+            end
+
             -- "unravel" our pathstack, start at last path that was found to finish loop, then go down. If it calls display so, otherwise say "goal reached"
             if entry.calls then
                 table.insert(lines, string.format("  %s %s %s %s",
                                     config.icons.call,
-                                    entry.function_name,
+                                    display_name,
                                     config.icons.path,
                                     entry.calls))
             else
                 -- Reached 
-                table.insert(lines, string.format("  %s %s", config.icons.target, entry.function_name))
+                table.insert(lines, string.format("  %s %s", config.icons.target, display_name))
             end
         end
 
