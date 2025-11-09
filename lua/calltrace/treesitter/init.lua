@@ -51,6 +51,38 @@ function M.get_fun_surrounding_pos(bufnr, row, col)
     return nil
 end
 
+-- Extract alias from an import statement if it exists -> Forward resolve-responsibility to tracer
+-- python for example allows aliased imports (import ... as ...), this breaks our referencecycle as we essentially "rename" dynamically.
+-- this function checks if we are inside an aliased import and if yes returns name and node (needed for extracting new reference)
+-- Returns: alias_name (string), alias_node or nil, nil
+function M.get_import_alias(bufnr, row, col)
+    local node = vim.treesitter.get_node({ bufnr = bufnr, pos = {row - 1, col} })
+    if not node then return nil, nil end
+
+    -- Walk up the tree to find aliased_import node
+    -- TODO Check if we should exit early here. Might be better performancewise, wont bother for now
+    while node do
+        if node:type() == "aliased_import" then
+            -- For Python: aliased_import has 'name' and 'alias' fields
+            local alias_field = node:field("alias")
+            if alias_field and alias_field[1] then
+                local alias_name = vim.treesitter.get_node_text(alias_field[1], bufnr)
+                return alias_name, alias_field[1]
+            end
+        end
+
+        -- If we hit an importstatement but no alias, stop looking
+        if node:type() == "import_from_statement" or node:type() == "import_statement" then
+            return nil, nil
+        end
+
+        node = node:parent()
+    end
+
+    return nil, nil
+end
+
+
 -- Get functionname from functionnode
 function M.get_function_name(bufnr, node)
     -- invalid node -> no name

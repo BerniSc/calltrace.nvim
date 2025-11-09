@@ -122,6 +122,7 @@ require('calltrace').trace({ display = { backend = "float" } })
 - ✅ Floating window display
 - ✅ Multi-path support
 - ✅ Loop-Detection to prevent infinite loops
+- ✅ Following of aliased imports (at least in python)
 
 **Todo:**
 - [ ] Implement Resultcaching
