@@ -59,7 +59,7 @@ M.defaults = {
 ### packer.nvim
 ```lua
 use {
-    'BerniSc/calltrace',
+    'BerniSc/calltrace.nvim',
     config = function()
         require'calltrace'.setup({
             display = {
@@ -71,7 +71,7 @@ use {
 ```
 or with default configs:
 ```lua
-use 'BerniSc/calltrace'
+use 'BerniSc/calltrace.nvim'
 ```
 
 ## Usage
