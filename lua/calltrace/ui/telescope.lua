@@ -15,8 +15,8 @@ local function process_paths(paths, config)
     local results = {}
 
     for path_idx, path in ipairs(paths) do
-        -- TODO Check agagins docu
-        -- telescope seems to display in reversed order, so we can reverse what we had in quickfix and float to fix it here
+        -- TODO Cant find any reference in Docu, this does not feel entirely great, but it works for me if I just change the order, lets see if it keeps this way 
+        -- telescope seems to display in reversed order, so we can reverse what we had in quickfix and float to fix it here (including headers and seperators)
         for i = 1, #path, 1 do
             local entry = path[i]
 
@@ -38,13 +38,14 @@ local function process_paths(paths, config)
                 text = string.format("%s %s (start)", config.icons.target, display_name)
             end
 
+            -- telescope.make_entry format so we can "pass these values through" in our display function
             table.insert(results, {
-                display = text,
-                ordinal = text,
-                filename = entry.file,
-                lnum = entry.line,
-                col = entry.col + 1,
-                value = entry,
+                value = entry,          -- Anything -> Still required
+                ordinal = text,         -- Used for filtering
+                display = text,         -- what to display, COOOUUULD be a func as well, maybe keep in mind for later
+                filename = entry.file,  -- <cr> will open this file
+                lnum = entry.line,      -- <cr> will jump here
+                col = entry.col + 1,    -- <cr> will jump here
             })
         end
 
@@ -75,8 +76,8 @@ end
 function M.display(paths, config)
     local results = process_paths(paths, config)
 
-    -- TODO put in opts?
-    pickers.new({
+    local opts = {
+        results_title = "Call-Trace Results",
         prompt_title = "Call-Trace",
         finder = finders.new_table {
             results = results,
@@ -91,29 +92,31 @@ function M.display(paths, config)
                 }
             end,
         },
-        sorter = sorters.get_generic_fuzzy_sorter({}),
+        sorter = sorters.get_generic_fuzzy_sorter({}),  -- Need sorter to "filter" once we are typing. Use generic sorter for that
         previewer = previewers.new_buffer_previewer {
+            -- unique name for buffers (caching)
             get_buffer_by_name = function(_, entry)
                 return entry.filename
             end,
+            -- called each move/update for each file, TODO performance?
             define_preview = function(self, entry, status)
                 -- For header and separator clear preview
                 if not entry.filename or entry.filename == "/dev/null" then
                     vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, {})
                     return
                 end
-                previewers.buffer_previewer_maker(
-                    entry.filename,
-                    self.state.bufnr,
-                    {
-                        start_lnum = entry.lnum,
-                        start_col = entry.col,
-                    }
-                )
+                -- teardown will automatically clean up all created buffers -> Open them here with filepath, buffernumber and options (in this case where to jump to)
+                previewers.buffer_previewer_maker(entry.filename,
+                                                  self.state.bufnr,
+                                                  { start_lnum = entry.lnum,
+                                                    start_col = entry.col, })
             end,
         },
-        -- override replace-defaults (on Enter)
-        attach_mappings = function(prompt_bufnr, map)
+        -- Even if preview was disabled globaly opt in for this picker, if you dont like it pick a different frontend or create an issue
+        preview = true,
+        -- override replace-defaults (on Enter), no need to use the "map" option yet so we use "_" instead so linter doesnt cry
+        attach_mappings = function(prompt_bufnr, _)
+            -- Replace default select-action
             actions.select_default:replace(function()
                 actions.close(prompt_bufnr)
                 -- if selected file exists open it
@@ -125,7 +128,12 @@ function M.display(paths, config)
             end)
             return true
         end,
-    }):find()
+    }
+
+    -- TODO Allow external defaults, maybe make less important opts so style can be determined by user
+    local defaults = {}
+
+    pickers.new(opts, defaults):find()
 end
 
 return M

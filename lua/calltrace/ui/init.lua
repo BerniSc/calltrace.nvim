@@ -17,7 +17,14 @@ function M.display_results(paths, config)
     -- elseif backend == "split" then
     --     split.display(paths, config)
     elseif backend == "telescope" then
-        telescope.display(paths, config)
+        -- Check if telescope is even installed
+        local ok, _ = pcall(require, "telescope")
+        if not ok then
+            vim.notify("Telescope not found, falling back to quickfix", vim.log.levels.WARN)
+            quickfix.display(paths, config)
+        else
+            telescope.display(paths, config)
+        end
     else
         vim.notify("Unknown display backend: " .. backend, vim.log.levels.ERROR)
     end
