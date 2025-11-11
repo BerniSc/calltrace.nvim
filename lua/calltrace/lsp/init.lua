@@ -61,7 +61,12 @@ function M.get_references_at_position(bufnr, row, col, timeout)
     params.context = { includeDeclaration = false }
 
     -- TODO are these the only way to have a reference? Or is there an alias or something like that?
-    local results = vim.lsp.buf_request_sync(bufnr, "textDocument/references", params, timeout)
+    local results, err = vim.lsp.buf_request_sync(bufnr, "textDocument/references", params, timeout)
+    -- Log timeout/cancel/error cases so user knows the issue
+    if err then
+        vim.notify(string.format("LSP request failed: %s", err), vim.log.levels.ERROR)
+        return {}
+    end
 
     -- Restore state before call
     if switched_buf then
