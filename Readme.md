@@ -15,6 +15,8 @@ The following image for example demonstrates an exemplary tracking and its resul
 
 For example if we want to see how/if `helper_function` gets called from `main` and what paths it could take we could trace from `main` to `helper_function`. 
 
+For the different UI-Options take a look at [these images](./doc/images/UIOptions). Telescope does require `telescope` to be installed and set up, but it does provide a cool live preview while looking into the path.
+
 ## Installation
 
 ### Configoptions
@@ -63,7 +65,7 @@ use {
     config = function()
         require'calltrace'.setup({
             display = {
-                backend = "float",
+                backend = "telescope",
             },
         })
     end
@@ -78,7 +80,7 @@ use 'BerniSc/calltrace.nvim'
 
 1. Put cursor on your entry function (ideally the name of the function) and run `:CalltraceSetReference`
 2. Put cursor on any other function (again, ideally the name) and run `:CalltraceTrace`
-3. View the call paths in a floating window
+3. View the call paths in configured UI (or floating window)
 
 ### Neovim Commands
 - `:CalltraceSetReference` - Set reference point at cursor
@@ -140,4 +142,4 @@ require('calltrace').trace({ display = { backend = "float" } })
 - LSP server for your language
 - nvim-treesitter with appropriate parsers
 
-Tested with Lua, should work with most languages that have proper LSP and Treesitter support.
+Tested with Python and basic Lua, should work with most languages that have proper LSP and Treesitter support.
