@@ -15,7 +15,7 @@ The following image for example demonstrates an exemplary tracking and its resul
 
 For example if we want to see how/if `helper_function` gets called from `main` and what paths it could take we could trace from `main` to `helper_function`. 
 
-For the different UI-Options take a look at [these images](./doc/UI-Options). Telescope does require `telescope` to be installed and set up, but it does provide a cool live preview while looking into the path.
+For the different UI-Options take a look at [these images](./doc/images/UIOptions). Telescope does require `telescope` to be installed and set up, but it does provide a cool live preview while looking into the path.
 
 ## Installation
 
