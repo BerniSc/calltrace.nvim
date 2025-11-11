@@ -151,15 +151,8 @@ function M.trace_to_reference(bufnr, pos, function_name, reference_point, config
                         local new_path = vim.deepcopy(path)
                         table.insert(new_path, new_path_entry)
 
-                        -- Get pos of function NAME (not start of definition)
-                        -- To get it iterate over node until we read identifier/name and then exit loop
-                        local name_node = nil
-                        for child in containing_func_node:iter_children() do
-                            if child:type() == "identifier" or child:type() == "name" then
-                                name_node = child
-                                break
-                            end
-                        end
+                        -- Get pos of function NAME (not start of definition), otherwise we might follow the wrong function
+                        local name_node = ts.find_name_node(containing_func_node)
 
                         local containing_pos
                         -- LSP Positions are 0-based, Lua and vim expect 1-based
@@ -169,7 +162,7 @@ function M.trace_to_reference(bufnr, pos, function_name, reference_point, config
                             containing_pos = {name_row + 1, name_col}
                             utils.debug_print(config, string.format("    Using name position: %d:%d", containing_pos[1], containing_pos[2]))
                         else
-                            -- Fallback to function start
+                            -- Fallback to function start - might very well fail, but still better than just giving up^^
                             local start_row, start_col = containing_func_node:start()
                             containing_pos = {start_row + 1, start_col}
                             utils.debug_print(config, string.format("    Using fallback position: %d:%d", containing_pos[1], containing_pos[2]))

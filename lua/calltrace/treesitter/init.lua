@@ -5,6 +5,57 @@ local M = {}
 local utils = require('calltrace.utils')
 local config = require('calltrace.config')
 
+-- Extract the name-node of a functionnode
+-- Needed as for example Lua and its moduleglobal functions hide behind dot_index_expression etc, we have to extract the ACTUAL functionnode from that
+-- If we get the functionnode found by LSP its first identifier would be M. instead of what we really want, therefore reference-following would break
+function M.find_name_node(func_node)
+    if not func_node then
+        return nil
+    end
+
+    -- Try to find identifier/namechild by iterating over all children until we reach the correct one.
+    -- Map for different languages and their Tricks here (can find them by :InspectTree)
+    for child in func_node:iter_children() do
+        local child_type = child:type()
+
+        -- Direct identifier - Can come before f.e. lua-check as initial check will not show identifier but dot_index_expression
+        if child_type == "identifier" or child_type == "name" then
+            return child
+        end
+
+        -- Handle Lua module functions (M.function_name) -> TSTree should be like this:
+        --     name: (dot_index_expression ; [73, 9] - [73, 18]
+        --       table: (identifier) ; [73, 9] - [73, 10]
+        --       field: (identifier)) ; [73, 11] - [73, 18]   <---- We Want this!
+        if child_type == "dot_index_expression" then
+            -- Extract "field" (function_name) from M.function_name
+            for subchild in child:iter_children() do
+                if subchild:type() == "identifier" and subchild ~= child:child(0) then
+                    return subchild
+                end
+            end
+        end
+
+        -- C/C++ -> functionname is nested inside of "function_declarator" so we have to subchild
+        if child_type == "function_declarator" then
+            for subchild in child:iter_children() do
+                if subchild:type() == "identifier" then
+                    return subchild
+                end
+            end
+        end
+
+        -- JS/TS methods (stuff inside of classes/objects) is called differently, look for this as well
+        if child_type == "property_identifier" then
+            return child
+        end
+
+        -- TODO Add other languagestuff here as well as soon as I learn it
+    end
+
+    return nil
+end
+
 -- Get functionnode surrounding given position
 function M.get_fun_surrounding_pos(bufnr, row, col)
     if not pcall(require, "nvim-treesitter") then
@@ -82,7 +133,6 @@ function M.get_import_alias(bufnr, row, col)
     return nil, nil
 end
 
-
 -- Get functionname from functionnode
 function M.get_function_name(bufnr, node)
     -- invalid node -> no name
@@ -90,30 +140,10 @@ function M.get_function_name(bufnr, node)
         return nil
     end
 
-    -- Try to find identifier/name child by iterating over all children until we reach "identifier" or "name"
-    for child in node:iter_children() do
-        local child_type = child:type()
-
-        -- Direct identifier
-        if child_type == "identifier" or child_type == "name" then
-            return vim.treesitter.get_node_text(child, bufnr)
-        end
-
-        -- C/C++ -> functionname is nested inside of "function_declarator" so we have to subchild
-        if child_type == "function_declarator" then
-            for subchild in child:iter_children() do
-                if subchild:type() == "identifier" then
-                    return vim.treesitter.get_node_text(subchild, bufnr)
-                end
-            end
-        end
-
-        -- JS/TS methods (stuff inside of classes/objects) is called differently, look for this as well
-        if child_type == "property_identifier" then
-            return vim.treesitter.get_node_text(child, bufnr)
-        end
-
-        -- TODO Add other languagestuff here as well as soon as I learn it
+    -- Try to find the name node using shared logic
+    local name_node = M.find_name_node(node)
+    if name_node then
+        return vim.treesitter.get_node_text(name_node, bufnr)
     end
 
     -- Fallback: try extracting from nodetext using regexstuff, kind of ugly, but if it saves us in some cases I will take it
