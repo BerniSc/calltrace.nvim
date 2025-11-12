@@ -28,8 +28,8 @@ M.defaults = {
 
     -- Displayoptions
     display = {
-        -- TODO Implement the others, currently only float and quickfix working
-        -- "quickfix" | "float" | "split" | "telescope"
+        -- "quickfix" | "float" | "telescope"
+        -- using float as default as it has less requirements than telescope, but telescope is a lot cooler^^
         backend = "float",
         -- Highlight referencepoint in signcol
         highlight_reference = true,
@@ -95,7 +95,7 @@ local calltrace = require("calltrace")
 
 calltrace.setup({
     max_depth = 50,
-    display = { backend = "float" },
+    display = { backend = "telescope" },
     timeout = 5000,
 })
 
@@ -103,7 +103,7 @@ calltrace.set_reference()
 calltrace.trace()
 
 -- Also supports directly overriding configs for single operations like:
-require('calltrace').trace({ display = { backend = "float" } })
+require('calltrace').trace({ display = { backend = "telescope" } })
 ```
 
 ## Use Cases
@@ -121,14 +121,14 @@ require('calltrace').trace({ display = { backend = "float" } })
 - ✅ LSP-based reference finding
 - ✅ Treesitter function detection
 - ✅ Backward tracing algorithm
-- ✅ Floating window display
+- ✅ Floating window display as well as quickfix and telescopedisplay (both provide referencejumping, telescope live preview as well)
 - ✅ Multi-path support
 - ✅ Loop-Detection to prevent infinite loops
 - ✅ Following of aliased imports (at least in python)
 
 **Todo:**
 - [ ] Implement Resultcaching
-- [ ] Implement the other displaybackends (quickfix, telescope, split)
+- [ ] Implement the other displaybackends (split)
 - [ ] Cross-file optimization
 - [ ] Better language support
 - [ ] Performance improvements 

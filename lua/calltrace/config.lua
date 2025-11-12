@@ -8,8 +8,7 @@ M.defaults = {
 
     -- Displayoptions
     display = {
-        -- "quickfix" | "float" | "split" | "telescope"
-        -- TODO Implement the others
+        -- "quickfix" | "float" | "telescope"
         backend = "float",
         -- Highlight referencepoint in signcol
         highlight_reference = true,
