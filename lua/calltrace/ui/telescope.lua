@@ -1,12 +1,12 @@
 -- Telescope display backend for calltrace-plugin
 
-local pickers = require "telescope.pickers"
-local finders = require "telescope.finders"
-local sorters = require "telescope.sorters"
-local previewers = require "telescope.previewers"
-local actions = require "telescope.actions"
-local action_state = require "telescope.actions.state"
--- local conf = require("telescope.config").values
+local pickers = require("telescope.pickers")
+local finders = require("telescope.finders")
+local sorters = require("telescope.sorters")
+local previewers = require("telescope.previewers")
+local actions = require("telescope.actions")
+local action_state = require("telescope.actions.state")
+local utils = require("calltrace.utils")
 
 local M = {}
 
@@ -65,7 +65,7 @@ local function process_paths(paths, config)
             display = "",
             ordinal = "",
             filename = "/dev/null",
-            lnum = 0,
+            lnum = -1,
             col = 0,
         })
     end
@@ -108,8 +108,19 @@ function M.display(paths, config)
                 -- teardown will automatically clean up all created buffers -> Open them here with filepath, buffernumber and options (in this case where to jump to)
                 previewers.buffer_previewer_maker(entry.filename,
                                                   self.state.bufnr,
-                                                  { start_lnum = entry.lnum,
-                                                    start_col = entry.col, })
+                                                  -- Use callback to jump preview to functionline and highlight the line as well for some seconds
+                                                  -- as suggested in :help for telescope.previewers.buffer_previewer_maker()
+                                                  { callback = function(bufnr)
+                                                        -- callback is called when the buffer is ready
+                                                        if vim.api.nvim_win_is_valid(self.state.winid) then
+                                                            vim.api.nvim_win_set_cursor(self.state.winid, { entry.lnum or 1, (entry.col or 1) - 1 })
+                                                            -- Center line in window if we have the space for it
+                                                            vim.api.nvim_win_call(self.state.winid, function()
+                                                                vim.cmd("normal! zz")
+                                                            end)
+                                                            utils.highlight_line(self.state.bufnr, entry.lnum or 1, 5000)
+                                                       end
+                                                    end })
             end,
         },
         -- Even if preview was disabled globaly opt in for this picker, if you dont like it pick a different frontend or create an issue

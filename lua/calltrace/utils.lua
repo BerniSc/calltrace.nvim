@@ -33,6 +33,24 @@ function M.place_reference_sign(bufnr, lnum, icon)
                       {lnum = lnum, priority = 10}) -- TODO configurable prio?
 end
 
+-- create namespace, cache it to save repeated lookups, even though those are kinda fast
+local preview_ns = vim.api.nvim_create_namespace("telescope_preview_temp")
+
+-- temporarily highlight line in buffer
+function M.highlight_line(bufnr, lnum, duration_ms)
+    -- Zero-based linenumbers for set_extmark
+    local mark_id = vim.api.nvim_buf_set_extmark(bufnr, preview_ns, (lnum or 1) - 1, 0, {
+        end_line = (lnum or 1), -- end one line later
+        hl_group = "CursorLine",
+        priority = 200,
+    })
+    vim.defer_fn(function()
+        if vim.api.nvim_buf_is_valid(bufnr) then
+            vim.api.nvim_buf_del_extmark(bufnr, preview_ns, mark_id)
+        end
+    end, duration_ms or 2000)
+end
+
 -- Clear referencesign(s) from buffer
 function M.clear_reference_sign(bufnr)
     vim.fn.sign_unplace('ReferenceGroup', {buffer = bufnr})
