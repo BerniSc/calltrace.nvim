@@ -36,7 +36,23 @@ function M.find_name_node(func_node)
             end
         end
 
-        -- C/C++ -> functionname is nested inside of "function_declarator" so we have to subchild
+        -- C/C++: function_declarator may contain field_identifier or identifier if in class/struct
+        --     (function_definition ; [21, 4] - [24, 5]
+        --       type: (primitive_type) ; [21, 4] - [21, 8]
+        --       declarator: (function_declarator ; [21, 9] - [21, 24]
+        --         declarator: (field_identifier) ; [21, 9] - [21, 22]    <---- We want this
+        --         parameters: (parameter_list)) ; [21, 22] - [21, 24]
+        --       body: (compound_statement ; [22, 4] - [24, 5]
+        if child_type == "function_declarator" then
+            for subchild in child:iter_children() do
+                local sub_type = subchild:type()
+                if sub_type == "field_identifier" or sub_type == "identifier" then
+                    return subchild
+                end
+            end
+        end
+
+        -- C/C++ -> functionname is nested inside of "function_declarator" in free functions so we have to subchild
         if child_type == "function_declarator" then
             for subchild in child:iter_children() do
                 if subchild:type() == "identifier" then
