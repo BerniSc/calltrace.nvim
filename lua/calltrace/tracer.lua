@@ -29,20 +29,36 @@ function M.trace_to_reference(bufnr, pos, function_name, reference_point, config
     --          We could also filter current-path with loop, but rather use table with O(1) lookup, feels better: table<string>
     --      path_key -> filename:funcname to build incremental string for Loopdetection: string
     local function trace_upward(current_bufnr, current_pos, current_name, current_file_name, path, depth, path_set, path_key)
-        -- TODO if is alias is set we want to build a name we enter into path (like name (pathkey.split(:)[0]) or something like that.
-
         -- Exit early -> Reached max rec depth
         if depth > max_depth then
             utils.debug_print(config, "Max depth reached")
+            -- No need for early cleanup here, we dont set a key in path_set here, I think this should be alright
             return
         end
 
         -- Build key to identify call uniquely for this recursive branch. We want to allow using the same functionnode multiple times if it is 
         -- part of multiple paths (like A->C->D as well as A->B->C->D) yet we still need to block endless loops (like A->B->A->B)
         local current_node = current_file_name .. ":" .. current_name
-        local new_path_key = (path_key .. ">" .. current_node)
+
+        local new_path_key
+        -- TODO Maybe add line/col here as well? Lets see
+        if config.loop_detection.mode == "complete" then
+            -- Doing this we classify only functionFrom>functionTo in each branch as a loop
+            -- This leaves more options in the same branch like foo->bar->baz->bar->main and foo->bar->main
+            new_path_key = (path_key .. ">" .. current_node)
+        else
+            -- this reduces the example above as we now say bar cant be visited twice -> recursion less visible
+            new_path_key = current_node
+        end
+
         if path_set[new_path_key] then
             utils.debug_print(config, "Cycle detected in current path:", new_path_key)
+
+            -- Free path from dict in this recursive branch to allow other paths to include the node again
+            -- Freeing here also allows for callstructure like main->foo->bar->baz to match as well as main->foo->baz
+            -- as the foo->main from the first match will be reset for siblings again
+            -- see Notes 21.11.2025 - GN
+            path_set[new_path_key] = nil
             return
         end
         path_set[new_path_key] = true
@@ -55,6 +71,12 @@ function M.trace_to_reference(bufnr, pos, function_name, reference_point, config
             utils.debug_print(config, "Found path to reference point")
             -- path changes recursively, without deepcopy it would still mutate what we write into all_paths
             table.insert(all_paths, vim.deepcopy(path))
+
+            -- Free path from dict in this recursive branch to allow other paths to include the node again
+            -- Freeing here also allows for callstructure like main->foo->bar->baz to match as well as main->foo->baz
+            -- as the foo->main from the first match will be reset for siblings again
+            -- see Notes 21.11.2025 - GN
+            path_set[new_path_key] = nil
             return
         end
 
@@ -113,6 +135,7 @@ function M.trace_to_reference(bufnr, pos, function_name, reference_point, config
                 local is_call = ts.is_function_call(ref_bufnr, ref_row, ref_col)
                 utils.debug_print(config, string.format("    Is function call: %s", tostring(is_call)))
 
+                -- NOTE Can be a functioncall or an aliased functioncall, first one (ideally) we handle here, aliascheck in else
                 if is_call then
                     -- Find containing function by looking in what func we are right now
                     local containing_func_node = ts.get_fun_surrounding_pos(ref_bufnr, ref_row, ref_col)
@@ -137,6 +160,12 @@ function M.trace_to_reference(bufnr, pos, function_name, reference_point, config
                             table.insert(new_path, new_path_entry)
                             table.insert(all_paths, new_path)
                             utils.debug_print(config, "Found complete path via:", containing_func_name)
+
+                            -- Free path from dict in this recursive branch to allow other paths to include the node again
+                            -- Freeing here also allows for callstructure like main->foo->bar->baz to match as well as main->foo->baz
+                            -- as the foo->main from the first match will be reset for siblings again
+                            -- see Notes 21.11.2025 - GN
+                            path_set[new_path_key] = nil
                             return
                         end
 
@@ -169,7 +198,9 @@ function M.trace_to_reference(bufnr, pos, function_name, reference_point, config
                         end
 
                         -- Recursively trace upward from containing functions name
-                        -- trace_upward(ref_bufnr, containing_pos, containing_func_name, new_path, depth + 1, path_set, new_path_key)
+                        -- we pass current_node (filename:function...) instead of new_path_key (current_node(old)->current_node)
+                        -- as we dont want to accumulate there
+                        -- a->b->a as a key would be different from a->b->a->b etc so we would not be able to detect anything there
                         trace_upward(ref_bufnr, containing_pos, containing_func_name, ref_file, new_path, depth + 1, path_set, current_node)
                     else
                         -- Recterm
@@ -198,7 +229,10 @@ function M.trace_to_reference(bufnr, pos, function_name, reference_point, config
                         table.insert(new_path, new_path_entry)
 
                         -- Continue tracing from the alias position
-                        trace_upward(ref_bufnr, {alias_row + 1, alias_col}, alias, ref_file, new_path, depth, path_set, new_path_key)
+                        -- we pass current_node (filename:function...) instead of new_path_key (current_node(old)->current_node)
+                        -- as we dont want to accumulate there
+                        -- a->b->a as a key would be different from a->b->a->b etc so we would not be able to detect anything there
+                        trace_upward(ref_bufnr, {alias_row + 1, alias_col}, alias, ref_file, new_path, depth, path_set, current_node)
                     else
                         utils.debug_print(config, "    Reference is not a call and not an aliased import, skipping")
                     end

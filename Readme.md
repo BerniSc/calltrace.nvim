@@ -24,7 +24,7 @@ Default configuration of the plugin is:
 ```lua
 M.defaults = {
     -- Maximum Depth to trace (prevent infinite loops)
-    max_depth = 50,
+    max_depth = 20,
 
     -- Displayoptions
     display = {
@@ -51,6 +51,12 @@ M.defaults = {
         target = "",
         call = "󰃀",
         path = "→",         -- Might also hold strings like "calls" etc
+    },
+
+    loop_detection = {
+        -- "simplified" checks if function in path already, if yes it detects a loop, "complete" detects funtionFrom->FunctionTo pairs
+        -- (in a call foo->bar->baz->bar->goal as well as foo->bar->goal "complete" would display all, "simplified" one)
+        mode = "simplified",    -- "simplified" | "complete"
     },
 
     -- Debugmode
