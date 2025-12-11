@@ -48,12 +48,12 @@ function M.find_name_node(func_node)
                 -- Get name of qualified_identifier - Qualified Identifier is functioncall prefixed by namespace or classdefined func
                 -- for example "void DUMMY::functionname() {" would produce a qualified_identifier as functiondefinition, need to match this too
                 if sub_type == "qualified_identifier" then
-                    local last = nil
-                    for subsubchild in subchild:iter_children() do
-                        last = subsubchild
-                    end
-                    if last and (last:type() == "identifier" or last:type() == "field_identifier") then
-                        return last
+                    local child_count = subchild:named_child_count()
+                    if child_count > 0 then
+                        local last = subchild:named_child(child_count - 1)
+                        if last and (last:type() == "identifier" or last:type() == "field_identifier") then
+                            return last
+                        end
                     end
                 elseif sub_type == "field_identifier" or sub_type == "identifier" then
                     return subchild
@@ -191,7 +191,7 @@ end
 
 -- check if node is a ctor call
 local function is_ctor_call(node, config)
-    -- Check if node is init_declarator
+    -- C++ - Check if node is init_declarator
     if node:type() == "init_declarator" then
         -- TODO For now check if we do have args, this excludes default C'Tors
         for child in node:iter_children() do
