@@ -59,6 +59,9 @@ M.defaults = {
         mode = "simplified",    -- "simplified" | "complete"
     },
 
+    -- trace constructorcalls as well as functions?
+    constructor_tracing = true,
+
     -- Debugmode
     debug = false,
 }
