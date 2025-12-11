@@ -39,6 +39,9 @@ M.defaults = {
 
     },
 
+    -- trace constructorcalls as well as functions?
+    constructor_tracing = true,
+
     -- Debugmode
     debug = false,
 }

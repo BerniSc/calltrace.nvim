@@ -132,7 +132,7 @@ function M.trace_to_reference(bufnr, pos, function_name, reference_point, config
                 end
 
                 -- Check if ref is actually a functioncall
-                local is_call = ts.is_function_call(ref_bufnr, ref_row, ref_col)
+                local is_call = ts.is_function_call(ref_bufnr, ref_row, ref_col, config)
                 utils.debug_print(config, string.format("    Is function call: %s", tostring(is_call)))
 
                 -- NOTE Can be a functioncall or an aliased functioncall, first one (ideally) we handle here, aliascheck in else
@@ -140,7 +140,7 @@ function M.trace_to_reference(bufnr, pos, function_name, reference_point, config
                     -- Find containing function by looking in what func we are right now
                     local containing_func_node = ts.get_fun_surrounding_pos(ref_bufnr, ref_row, ref_col)
                     if containing_func_node then
-                        local containing_func_name = ts.get_function_name(ref_bufnr, containing_func_node)
+                        local containing_func_name = ts.get_function_name(ref_bufnr, containing_func_node, config)
 
                         utils.debug_print(config, string.format("    Containing function: %s", containing_func_name))
 
