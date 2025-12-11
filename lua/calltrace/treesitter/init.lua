@@ -3,7 +3,6 @@
 local M = {}
 
 local utils = require('calltrace.utils')
-local config = require('calltrace.config')
 
 -- Extract the name-node of a functionnode
 -- Needed as for example Lua and its moduleglobal functions hide behind dot_index_expression etc, we have to extract the ACTUAL functionnode from that
@@ -46,16 +45,17 @@ function M.find_name_node(func_node)
         if child_type == "function_declarator" then
             for subchild in child:iter_children() do
                 local sub_type = subchild:type()
-                if sub_type == "field_identifier" or sub_type == "identifier" then
-                    return subchild
-                end
-            end
-        end
-
-        -- C/C++ -> functionname is nested inside of "function_declarator" in free functions so we have to subchild
-        if child_type == "function_declarator" then
-            for subchild in child:iter_children() do
-                if subchild:type() == "identifier" then
+                -- Get name of qualified_identifier - Qualified Identifier is functioncall prefixed by namespace or classdefined func
+                -- for example "void DUMMY::functionname() {" would produce a qualified_identifier as functiondefinition, need to match this too
+                if sub_type == "qualified_identifier" then
+                    local child_count = subchild:named_child_count()
+                    if child_count > 0 then
+                        local last = subchild:named_child(child_count - 1)
+                        if last and (last:type() == "identifier" or last:type() == "field_identifier") then
+                            return last
+                        end
+                    end
+                elseif sub_type == "field_identifier" or sub_type == "identifier" then
                     return subchild
                 end
             end
@@ -150,7 +150,7 @@ function M.get_import_alias(bufnr, row, col)
 end
 
 -- Get functionname from functionnode
-function M.get_function_name(bufnr, node)
+function M.get_function_name(bufnr, node, config)
     -- invalid node -> no name
     if not node then
         return nil
@@ -159,6 +159,7 @@ function M.get_function_name(bufnr, node)
     -- Try to find the name node using shared logic
     local name_node = M.find_name_node(node)
     if name_node then
+        utils.debug_print(config, " found namenode " .. vim.treesitter.get_node_text(name_node, bufnr))
         return vim.treesitter.get_node_text(name_node, bufnr)
     end
 
@@ -180,16 +181,30 @@ function M.get_function_name(bufnr, node)
 end
 
 -- Get functionname the passed position is inside of (combines get_fun_surrounding_pos and get_function_name)
-function M.get_funcname_surrounding_pos(bufnr, row, col)
+function M.get_funcname_surrounding_pos(bufnr, row, col, config)
     local node = M.get_fun_surrounding_pos(bufnr, row, col)
     if not node then
         return nil
     end
-    return M.get_function_name(bufnr, node)
+    return M.get_function_name(bufnr, node, config)
+end
+
+-- check if node is a ctor call
+local function is_ctor_call(node, config)
+    -- C++ - Check if node is init_declarator
+    if node:type() == "init_declarator" then
+        -- TODO For now check if we do have args, this excludes default C'Tors
+        for child in node:iter_children() do
+            if child:type() == "argument_list" then
+                return true
+            end
+        end
+    end
+    return false
 end
 
 -- Check if position is a functioncall
-function M.is_function_call(bufnr, row, col)
+function M.is_function_call(bufnr, row, col, config)
     local parser = vim.treesitter.get_parser(bufnr)
     if not parser then
         return false
@@ -218,6 +233,11 @@ function M.is_function_call(bufnr, row, col)
             return true
         end
 
+        -- C'tor calldetection
+        if config.constructor_tracing and is_ctor_call(node, config) then
+            return true
+        end
+
         -- AAAAaaaaand restart^^
         node = node:parent()
     end
@@ -228,7 +248,7 @@ function M.is_function_call(bufnr, row, col)
 end
 
 -- Get call expression details
-function M.get_call_details(bufnr, row, col)
+function M.get_call_details(bufnr, row, col, config)
     -- TODO: Extract function name being called, arguments, etc.
     utils.debug_print(config, "    SHOULD HAVE IMPLEMENTED THIS, DOOFUS")
     return {
@@ -242,53 +262,8 @@ end
 --  ```foo=bar()+baz()``` we would need something like this to determine the true "source" of the call I think
 --  Also instead of saying "call on line 4" we then can say "called bar()" in the cotext above
 --
-function M.get_called_function_name(bufnr, row, col)
-    local parser = vim.treesitter.get_parser(bufnr)
-    if not parser then
-        return nil
-    end
-
-    -- get first found tree -> should only be one? TODO make more stable
-    -- Also use 0-based indexing for TS
-    local tree = parser:parse()[1]
-    local root = tree:root()
-    local node = root:named_descendant_for_range(row - 1, col, row - 1, col)
-
-    -- Find callexpressionnode
-    -- TODO Add more once I find them
-    while node and not vim.tbl_contains({
-        "call_expression",
-        "function_call",
-        "method_call",
-    }, node:type()) do
-        node = node:parent()
-    end
-
-    if not node then
-        return nil
-    end
-
-    local child_type = nil
-    -- Extract functionname from call
-    for child in node:iter_children() do
-        child_type = child:type()
-
-        if child_type == "identifier" then
-            return vim.treesitter.get_node_text(child, bufnr)
-        end
-
-        -- Handle methodcalls (like object.method()) -> contains name embedded in wrapper -> subchild
-        -- TODO Add more langs
-        if child_type == "member_expression" or child_type == "field_expression" then
-            for subchild in child:iter_children() do
-                if subchild:type() == "property_identifier" or subchild:type() == "field_identifier" then
-                    return vim.treesitter.get_node_text(subchild, bufnr)
-                end
-            end
-        end
-    end
-
-    utils.debug_print(config, "    could not retrieve functionname for:", child_type or "<None>")
+function M.get_called_function_name(bufnr, row, col, config)
+    utils.debug_print(config, "    SHOULD HAVE IMPLEMENTED THIS, DOOFUS")
     return nil
 end
 

@@ -23,7 +23,7 @@ function M.set_reference()
     local bufnr = vim.api.nvim_get_current_buf()
     local pos = vim.api.nvim_win_get_cursor(0)
 
-    local function_name = ts.get_funcname_surrounding_pos(bufnr, pos[1], pos[2])
+    local function_name = ts.get_funcname_surrounding_pos(bufnr, pos[1], pos[2], M.config)
 
     if not function_name then
         vim.notify("No function found at cursor", vim.log.levels.WARN)
@@ -77,7 +77,7 @@ function M.trace(opts)
         return
     end
 
-    local current_function = ts.get_funcname_surrounding_pos(bufnr, pos[1], pos[2])
+    local current_function = ts.get_funcname_surrounding_pos(bufnr, pos[1], pos[2], M.config)
 
     if not current_function then
         vim.notify("No function found at cursor", vim.log.levels.WARN)
