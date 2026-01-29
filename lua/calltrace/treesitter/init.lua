@@ -181,12 +181,21 @@ function M.get_function_name(bufnr, node, config)
 end
 
 -- Get functionname the passed position is inside of (combines get_fun_surrounding_pos and get_function_name)
+-- Returns not only the functionname found, but also the position of its node
 function M.get_funcname_surrounding_pos(bufnr, row, col, config)
     local node = M.get_fun_surrounding_pos(bufnr, row, col)
     if not node then
         return nil
     end
-    return M.get_function_name(bufnr, node, config)
+    -- TODO Reuse existing name_node created in get_function_name
+    local name = M.get_function_name(bufnr, node, config)
+    local name_node = M.find_name_node(node)
+    local pos = nil
+    if name_node then
+        local srow, scol = name_node:range()
+        pos = { srow + 1, scol }
+    end
+    return { name = name, pos = pos }
 end
 
 -- check if node is a ctor call

@@ -23,7 +23,8 @@ function M.set_reference()
     local bufnr = vim.api.nvim_get_current_buf()
     local pos = vim.api.nvim_win_get_cursor(0)
 
-    local function_name = ts.get_funcname_surrounding_pos(bufnr, pos[1], pos[2], M.config)
+    -- Actually really just need the name here, we store just this as our state
+    local function_name = ts.get_funcname_surrounding_pos(bufnr, pos[1], pos[2], M.config).name
 
     if not function_name then
         vim.notify("No function found at cursor", vim.log.levels.WARN)
@@ -81,9 +82,11 @@ function M.trace(opts)
         return
     end
 
+    -- Need to extract the name as well as the namenode-position here
+    -- name needed to build keys for tracing, position needed for LSP to properly work
     local current_function = ts.get_funcname_surrounding_pos(bufnr, pos[1], pos[2], M.config)
 
-    if not current_function then
+    if not current_function or not current_function.name then
         vim.notify("No function found at cursor", vim.log.levels.WARN)
         return
     end
@@ -93,8 +96,14 @@ function M.trace(opts)
     -- Merge options with config to allow perCall override of defaults
     local trace_config = vim.tbl_deep_extend("force", M.config, opts)
 
+    -- Overwrite pos if we get a better one from config
+    -- Should always be the case, but why not keep a fallback just in case
+    if current_function.pos then
+        pos = current_function.pos
+    end
+
     -- Perform trace
-    local paths = tracer.trace_to_reference(bufnr, pos, current_function, ref, trace_config)
+    local paths = tracer.trace_to_reference(bufnr, pos, current_function.name, ref, trace_config)
 
     -- If number of found paths zero we fauled to find connection
     if #paths == 0 then

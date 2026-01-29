@@ -87,8 +87,8 @@ use 'BerniSc/calltrace.nvim'
 
 ## Usage
 
-1. Put cursor on your entry function (ideally the name of the function) and run `:CalltraceSetReference`
-2. Put cursor on any other function (again, ideally the name) and run `:CalltraceTrace`
+1. Put cursor on your entry function and run `:CalltraceSetReference`. A _signcol_ symbol should appear next to the selected function.
+2. Put cursor on any other function (ideally the defintion, if used in calls it will default to a surrounding defintion) and run `:CalltraceTrace`.
 3. View the call paths in configured UI (or floating window)
 
 ### Neovim Commands
@@ -127,6 +127,8 @@ require('calltrace').trace({ display = { backend = "telescope" } })
 
 **Working:**
 - ✅ Basic reference point management
+    - ✅ Cleaning up on changing reference
+    - ✅ Robust selection defaulting to the closest (hopefully) expected function
 - ✅ LSP-based reference finding
 - ✅ Treesitter function detection
 - ✅ Backward tracing algorithm
