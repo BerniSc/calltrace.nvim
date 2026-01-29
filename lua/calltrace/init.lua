@@ -30,6 +30,10 @@ function M.set_reference()
         return
     end
 
+    if state.get_reference() then
+        M.clear_reference()
+    end
+
     state.set_reference(M.config, bufnr, pos, function_name)
     vim.notify(string.format("Referencepoint set: %s", function_name), vim.log.levels.INFO)
 end
